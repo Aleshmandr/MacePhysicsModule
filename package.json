@@ -1,8 +1,8 @@
 {
   "name": "com.mace.physics",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "displayName": "Mace Module",
-  "description": "Physics module",
+  "description": "MR Physics module",
   "unity": "2019.4",
   "dependencies":
   {},
