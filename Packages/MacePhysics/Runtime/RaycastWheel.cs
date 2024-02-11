@@ -22,7 +22,7 @@ namespace MacePhysics
 
         public bool IsGrounded { get; private set; }
 
-        public float ForwardSpeed { get; private set; }
+        public Vector3 Velocity { get; private set; }
 
         private void Awake()
         {
@@ -53,13 +53,13 @@ namespace MacePhysics
             meshRoot.localPosition = wheelLocalPosition;
             if (IsGrounded)
             {
-                ForwardSpeed = Vector3.Dot(transform.forward, carRigidbody.GetPointVelocity(hitInfo.point));
+                Velocity = transform.InverseTransformVector(carRigidbody.GetPointVelocity(hitInfo.point));
             } else
             {
-                ForwardSpeed = Vector3.Dot(transform.forward, carRigidbody.velocity);
+                Velocity = transform.InverseTransformVector(carRigidbody.velocity);
             }
 
-            float wheelRotationSpeed = -Mathf.Sign(transform.localPosition.x) * (ForwardSpeed * Mathf.Rad2Deg) / radius;
+            float wheelRotationSpeed = -Mathf.Sign(transform.localPosition.x) * (Velocity.z * Mathf.Rad2Deg) / radius;
             meshRoot.rotation *= Quaternion.Euler(wheelRotationSpeed * Time.deltaTime, 0f, 0f);
         }
 
