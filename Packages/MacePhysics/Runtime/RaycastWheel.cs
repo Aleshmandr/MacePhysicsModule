@@ -20,6 +20,7 @@ namespace MacePhysics
         private float offset;
         private float brakeMultiplier;
 
+        public RaycastHit HitInfo => hitInfo;
         public bool IsGrounded { get; private set; }
 
         public Vector3 Velocity { get; private set; }
