@@ -13,15 +13,21 @@ namespace MacePhysics
         [SerializeField] private float springDamping;
         [SerializeField] private float restDistance;
         [SerializeField] private float staticFrictionFactor;
+        [SerializeField] private float slipDesiredSpeedReachTime;
+        [SerializeField] private float slipDesiredSpeedLossThresh;
+        [SerializeField] private float slipStopThresh;
         [SerializeField] private Rigidbody carRigidbody;
         [SerializeField] private Transform meshRoot;
         private Vector3 wheelLocalPosition;
         private RaycastHit hitInfo;
         private float offset;
         private float brakeMultiplier;
+        private float desiredSpeed;
+        private float desiredSpeedTime;
 
         public RaycastHit HitInfo => hitInfo;
         public bool IsGrounded { get; private set; }
+        public float SlipSpeed { get; private set; }
 
         public Vector3 Velocity { get; private set; }
         public Vector3 WorldVelocity { get; private set; }
@@ -42,6 +48,12 @@ namespace MacePhysics
             brakeMultiplier = Mathf.Clamp01(brake);
         }
 
+        public void UpdateDesiredSpeedFixed(float desiredSpeed)
+        {
+            this.desiredSpeed = desiredSpeed;
+            desiredSpeedTime += Time.fixedDeltaTime;
+        }
+
         private void ValidateCarRigidbody()
         {
             if (carRigidbody == null)
@@ -56,14 +68,19 @@ namespace MacePhysics
             if (IsGrounded)
             {
                 WorldVelocity = carRigidbody.GetPointVelocity(hitInfo.point);
+                
             } else
             {
                 WorldVelocity = carRigidbody.velocity;
             }
             
             Velocity = transform.InverseTransformVector(WorldVelocity);
+            
+            
+            
 
-            float wheelRotationSpeed = -Mathf.Sign(transform.localPosition.x) * (Velocity.z * Mathf.Rad2Deg) / radius;
+            float targetWheelSpeed = SlipSpeed > 0f ? desiredSpeed : Velocity.z;
+            float wheelRotationSpeed = -Mathf.Sign(transform.localPosition.x) * (targetWheelSpeed * Mathf.Rad2Deg) / radius;
             meshRoot.rotation *= Quaternion.Euler(wheelRotationSpeed * Time.deltaTime, 0f, 0f);
         }
 
@@ -106,12 +123,33 @@ namespace MacePhysics
                     carRigidbody.AddForceAtPosition(staticGripForce * brakeMultiplier, hitInfo.point, ForceMode.Acceleration);
                     carRigidbody.AddForceAtPosition(-tireWorldVelocity * (0.25f * brakeMultiplier * frictionMultiplier), hitInfo.point, ForceMode.Acceleration);
                 }
+
+                if (desiredSpeed > 0f && Velocity.z < slipStopThresh)
+                {
+                    float reqSpeed = Mathf.Lerp(0f, desiredSpeed, desiredSpeedTime / slipDesiredSpeedReachTime);
+                    float slipSpeedLoss = reqSpeed - Velocity.z;
+                    SlipSpeed = slipSpeedLoss > slipDesiredSpeedLossThresh ? slipSpeedLoss : 0f;
+                } else
+                {
+                    SlipSpeed = 0f;
+                }
+                
             } else
             {
                 offset = 0f;
+                desiredSpeedTime = 0f;
+                SlipSpeed = 0f;
             }
 
             wheelLocalPosition = new Vector3(0f, offset - restDistance, 0f);
+            if (desiredSpeed == 0f)
+            {
+                desiredSpeedTime = 0f;
+                SlipSpeed = 0f;
+            } else
+            {
+                desiredSpeed = 0;
+            }
         }
 
 #if UNITY_EDITOR
